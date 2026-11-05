@@ -1,0 +1,101 @@
+
+# ==========================================
+# PYTHON CACHE AND COMPILED FILES
+# ==========================================
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+
+# Python virtual environments
+venv/
+.venv/
+env/
+ENV/
+backend/venv/
+backend/.venv/
+
+# Python testing and cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ==========================================
+# ENVIRONMENT VARIABLES AND SECRETS
+# ==========================================
+.env
+.env.*
+!.env.example
+
+# API keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ==========================================
+# DATABASE
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
+
+# ==========================================
+# HUGGING FACE AND MODEL CACHE
+# ==========================================
+.cache/
+huggingface/
+backend/data/huggingface/
+models/
+*.safetensors
+*.gguf
+
+# ==========================================
+# NODE / REACT / VITE
+# ==========================================
+node_modules/
+**/node_modules/
+dist/
+build/
+.vite/
+
+# ==========================================
+# LOGS AND TEMPORARY FILES
+# ==========================================
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+
+# ==========================================
+# IDE AND EDITORS
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==========================================
+# OPERATING SYSTEM
+# ==========================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==========================================
+# COVERAGE
+# ==========================================
+coverage/
+.nyc_output/
+
+# ==========================================
+# PROJECT-SPECIFIC
+# ==========================================
+backend/tweetsense.db
+backend/__pycache__/
+backend/.pytest_cache/
