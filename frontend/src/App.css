@@ -648,5 +648,22 @@ body {
   .chat-input-area button {
     padding: 0 15px;
   }
+
+  .message {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin: 15px 0;
+    line-height: 1.5;
+  }
+
+  .message:empty {
+    display: none;
+  }
+
 }
+
 

@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, Field
@@ -11,20 +12,22 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 password_hash = PasswordHash.recommended()
 
 
-# Registration request
+# Request schemas
 class RegisterRequest(BaseModel):
     name: str = Field(min_length=2, max_length=100)
     email: EmailStr
     password: str = Field(min_length=8)
 
 
-# Login request
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
 
-# Register user
+# ==========================================
+# USER REGISTRATION
+# ==========================================
+
 @router.post("/register")
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
 
@@ -35,7 +38,7 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(
             status_code=400,
-            detail="Email already registered"
+            detail="This email is already registered. Please log in."
         )
 
     hashed_password = password_hash.hash(data.password)
@@ -60,20 +63,29 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     }
 
 
-# Login user
+# ==========================================
+# USER LOGIN
+# ==========================================
+
 @router.post("/login")
 def login(data: LoginRequest, db: Session = Depends(get_db)):
 
+    # Check whether email exists
     user = db.query(User).filter(
         User.email == data.email
     ).first()
 
-    if not user or not password_hash.verify(
-        data.password, user.password
-    ):
+    if not user:
         raise HTTPException(
             status_code=401,
-            detail="Invalid email or password"
+            detail="Email address is not registered. Please register first."
+        )
+
+    # Verify password
+    if not password_hash.verify(data.password, user.password):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect password. Please try again."
         )
 
     return {

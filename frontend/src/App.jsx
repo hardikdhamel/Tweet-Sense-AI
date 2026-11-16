@@ -2,7 +2,10 @@
 import { useState } from "react";
 import "./App.css";
 
-const API_URL = "http://127.0.0.1:8000";
+// Local development uses localhost.
+// Vercel deployment uses VITE_API_URL.
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 function App() {
   const [isLogin, setIsLogin] = useState(true);
@@ -20,7 +23,10 @@ function App() {
   const [chatLoading, setChatLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
 
-  // Authentication form
+  // =====================================
+  // AUTHENTICATION FORM
+  // =====================================
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -28,9 +34,13 @@ function App() {
     });
   };
 
-  // Login and registration
+  // =====================================
+  // LOGIN AND REGISTRATION
+  // =====================================
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setMessage("");
     setLoading(true);
 
@@ -45,39 +55,81 @@ function App() {
         body: JSON.stringify(
           isLogin
             ? {
-                email: formData.email,
+                email: formData.email.trim(),
                 password: formData.password,
               }
-            : formData
+            : {
+                ...formData,
+                email: formData.email.trim(),
+              }
         ),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Something went wrong");
+        let errorMessage = "Something went wrong.";
+
+        if (typeof data.detail === "string") {
+          errorMessage = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          errorMessage = data.detail
+            .map((error) => error.msg)
+            .join(", ");
+        }
+
+        throw new Error(errorMessage);
       }
 
+      // LOGIN SUCCESS
       if (isLogin) {
+        if (!data.user) {
+          throw new Error("Login response does not contain user details.");
+        }
+
+        // This updates React state and opens the chatbot interface.
         setUser(data.user);
+
         setChatHistory([]);
-      } else {
+        setQuestion("");
+        setMessage("");
+      }
+
+      // REGISTRATION SUCCESS
+      else {
         setMessage("Registration successful! Please log in.");
+
         setIsLogin(true);
+
         setFormData({
           name: "",
           email: formData.email,
           password: "",
         });
       }
+
     } catch (error) {
-      setMessage(error.message);
+      let errorMessage = error.message;
+
+      if (
+        errorMessage === "Failed to fetch" ||
+        error instanceof TypeError
+      ) {
+        errorMessage =
+          "Unable to connect to the server. Please try again.";
+      }
+
+      setMessage(errorMessage);
+
     } finally {
       setLoading(false);
     }
   };
 
-  // Send question to FastAPI chatbot
+  // =====================================
+  // SEND QUESTION TO CHATBOT
+  // =====================================
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
 
@@ -110,7 +162,9 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.detail || "Unable to process your question");
+        throw new Error(
+          data.detail || "Unable to process your question"
+        );
       }
 
       setChatHistory((prev) => [
@@ -121,6 +175,7 @@ function App() {
           sources: data.sources || [],
         },
       ]);
+
     } catch (error) {
       setChatHistory((prev) => [
         ...prev,
@@ -130,22 +185,28 @@ function App() {
           sources: [],
         },
       ]);
+
     } finally {
       setChatLoading(false);
     }
   };
 
-  // Logout
+  // =====================================
+  // LOGOUT
+  // =====================================
+
   const handleLogout = () => {
     setUser(null);
     setChatHistory([]);
     setQuestion("");
     setMessage("");
+
     setFormData({
       name: "",
       email: "",
       password: "",
     });
+
     setIsLogin(true);
   };
 
@@ -160,20 +221,28 @@ function App() {
         <nav className="chat-navbar">
           <div className="chat-brand">
             <div className="chat-logo">T</div>
-            <h2>TweetSense <span>AI</span></h2>
+            <h2>
+              TweetSense <span>AI</span>
+            </h2>
           </div>
 
           <div className="navbar-user">
             <span>Welcome, {user.name}</span>
-            <button onClick={handleLogout}>Logout</button>
+            <button onClick={handleLogout}>
+              Logout
+            </button>
           </div>
         </nav>
 
         <main className="chat-main">
 
           <div className="chat-heading">
-            <div className="ai-badge">✦ AI POWERED PRODUCT INSIGHTS</div>
+            <div className="ai-badge">
+              AI POWERED PRODUCT INSIGHTS
+            </div>
+
             <h1>Explore Product Opinions</h1>
+
             <p>
               Ask questions and discover what people really think
               about products through tweets.
@@ -186,8 +255,8 @@ function App() {
 
               {chatHistory.length === 0 && (
                 <div className="empty-chat">
-                  <div className="empty-icon">✦</div>
                   <h2>Welcome to TweetSense AI!</h2>
+
                   <p>
                     Ask me about laptop brands and product opinions
                     based on real tweets.
@@ -216,8 +285,11 @@ function App() {
                   key={index}
                 >
                   <div className="message-content">
+
                     <div className="message-label">
-                      {chat.role === "user" ? "You" : "TweetSense AI"}
+                      {chat.role === "user"
+                        ? "You"
+                        : "TweetSense AI"}
                     </div>
 
                     <div className="message-text">
@@ -226,24 +298,33 @@ function App() {
 
                     {chat.sources?.length > 0 && (
                       <div className="sources-section">
+
                         <h3>Supporting Tweets</h3>
 
                         {chat.sources.map((tweet, i) => (
                           <div className="source-card" key={i}>
+
                             <div className="source-top">
                               <strong>Tweet {i + 1}</strong>
+
                               <span>
-                                Similarity: {(tweet.similarity * 100).toFixed(1)}%
+                                Similarity:{" "}
+                                {(tweet.similarity * 100).toFixed(1)}%
                               </span>
                             </div>
 
                             <p>{tweet.text}</p>
 
-                            <small>Brand: {tweet.brand}</small>
+                            <small>
+                              Brand: {tweet.brand}
+                            </small>
+
                           </div>
                         ))}
+
                       </div>
                     )}
+
                   </div>
                 </div>
               ))}
@@ -251,17 +332,26 @@ function App() {
               {chatLoading && (
                 <div className="message-row assistant">
                   <div className="message-content">
-                    <div className="message-label">TweetSense AI</div>
+
+                    <div className="message-label">
+                      TweetSense AI
+                    </div>
+
                     <div className="typing-indicator">
                       Analyzing tweets and generating response...
                     </div>
+
                   </div>
                 </div>
               )}
 
             </div>
 
-            <form className="chat-input-area" onSubmit={handleSendMessage}>
+            <form
+              className="chat-input-area"
+              onSubmit={handleSendMessage}
+            >
+
               <input
                 type="text"
                 placeholder="Ask about a laptop or product..."
@@ -277,6 +367,7 @@ function App() {
               >
                 {chatLoading ? "..." : "Send ↑"}
               </button>
+
             </form>
 
             <p className="chat-disclaimer">
@@ -298,13 +389,20 @@ function App() {
     <div className="auth-container">
 
       <div className="auth-left">
+
         <div className="brand">
           <div className="brand-icon">T</div>
-          <h2>TweetSense <span>AI</span></h2>
+
+          <h2>
+            TweetSense <span>AI</span>
+          </h2>
         </div>
 
         <div className="hero-content">
-          <div className="hero-tag">AI POWERED PRODUCT INSIGHTS</div>
+
+          <div className="hero-tag">
+            AI POWERED PRODUCT INSIGHTS
+          </div>
 
           <h1>
             Understand what
@@ -323,31 +421,43 @@ function App() {
             <div>✓ Intelligent AI analysis</div>
             <div>✓ Relevant supporting tweets</div>
           </div>
+
         </div>
 
         <div className="left-footer">
           © 2026 TweetSense AI. All rights reserved.
         </div>
+
       </div>
 
       <div className="auth-right">
+
         <div className="auth-box">
 
           <div className="mobile-brand">
-            <h2>TweetSense <span>AI</span></h2>
+            <h2>
+              TweetSense <span>AI</span>
+            </h2>
           </div>
 
           <div className="auth-heading">
-            <h1>{isLogin ? "Welcome back!" : "Create an account"}</h1>
+
+            <h1>
+              {isLogin ? "Welcome back!" : "Create an account"}
+            </h1>
+
             <p>
               {isLogin
                 ? "Sign in to continue to your account."
                 : "Join TweetSense AI and explore product opinions."}
             </p>
+
           </div>
 
           <div className="auth-tabs">
+
             <button
+              type="button"
               className={isLogin ? "active" : ""}
               onClick={() => {
                 setIsLogin(true);
@@ -358,6 +468,7 @@ function App() {
             </button>
 
             <button
+              type="button"
               className={!isLogin ? "active" : ""}
               onClick={() => {
                 setIsLogin(false);
@@ -366,13 +477,16 @@ function App() {
             >
               Register
             </button>
+
           </div>
 
           <form onSubmit={handleSubmit}>
 
             {!isLogin && (
               <div className="form-group">
+
                 <label>Full Name</label>
+
                 <input
                   type="text"
                   name="name"
@@ -383,11 +497,14 @@ function App() {
                   maxLength={100}
                   required
                 />
+
               </div>
             )}
 
             <div className="form-group">
+
               <label>Email Address</label>
+
               <input
                 type="email"
                 name="email"
@@ -396,10 +513,13 @@ function App() {
                 onChange={handleChange}
                 required
               />
+
             </div>
 
             <div className="form-group">
+
               <label>Password</label>
+
               <input
                 type="password"
                 name="password"
@@ -409,10 +529,13 @@ function App() {
                 minLength={isLogin ? 1 : 8}
                 required
               />
+
             </div>
 
             {message && (
-              <div className="message">{message}</div>
+              <div className="message">
+                {message}
+              </div>
             )}
 
             <button
@@ -430,11 +553,13 @@ function App() {
           </form>
 
           <div className="auth-switch">
+
             {isLogin
               ? "Don't have an account? "
               : "Already have an account? "}
 
             <button
+              type="button"
               onClick={() => {
                 setIsLogin(!isLogin);
                 setMessage("");
@@ -442,6 +567,7 @@ function App() {
             >
               {isLogin ? "Register" : "Login"}
             </button>
+
           </div>
 
         </div>

@@ -1,4 +1,7 @@
 
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -6,6 +9,15 @@ from pydantic import BaseModel, Field
 from database import engine, Base
 from auth import router as auth_router
 from chatbot import generate_answer
+
+
+# ==========================================
+# ENVIRONMENT VARIABLES
+# ==========================================
+
+load_dotenv()
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "").rstrip("/")
 
 
 # ==========================================
@@ -30,11 +42,16 @@ app = FastAPI(
 # CORS CONFIGURATION
 # ==========================================
 
+allowed_origins = [
+    "http://localhost:5173"
+]
+
+if FRONTEND_URL:
+    allowed_origins.append(FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
@@ -90,7 +107,6 @@ app.include_router(auth_router)
 
 @app.post("/chat", tags=["Chatbot"])
 def chat(data: ChatRequest):
-
     try:
         result = generate_answer(data.question)
 

@@ -1,12 +1,49 @@
+
+import os
+
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = "sqlite:///./tweetsense.db"
+# Load .env during local development.
+# Vercel environment variables are loaded automatically.
+load_dotenv()
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}
+# Use Neon when DATABASE_URL is configured.
+# Otherwise, continue using the existing local SQLite database.
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "sqlite:///./tweetsense.db"
 )
+
+# Use the psycopg v3 driver for PostgreSQL.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgres://",
+        "postgresql+psycopg://",
+        1
+    )
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgresql://",
+        "postgresql+psycopg://",
+        1
+    )
+
+# Configure the database connection.
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_size=1,
+        max_overflow=0,
+        pool_recycle=300
+    )
 
 SessionLocal = sessionmaker(
     autocommit=False,
