@@ -173,7 +173,6 @@ function App() {
         {
           role: "assistant",
           content: data.answer,
-          sources: data.sources || [],
         },
       ]);
 
@@ -303,35 +302,6 @@ function App() {
                       )}
                     </div>
 
-                    {chat.sources?.length > 0 && (
-                      <div className="sources-section">
-
-                        <h3>Supporting Tweets</h3>
-
-                        {chat.sources.map((tweet, i) => (
-                          <div className="source-card" key={i}>
-
-                            <div className="source-top">
-                              <strong>Tweet {i + 1}</strong>
-
-                              <span>
-                                Similarity:{" "}
-                                {(tweet.similarity * 100).toFixed(1)}%
-                              </span>
-                            </div>
-
-                            <p>{tweet.text}</p>
-
-                            <small>
-                              Brand: {tweet.brand}
-                            </small>
-
-                          </div>
-                        ))}
-
-                      </div>
-                    )}
-
                   </div>
                 </div>
               ))}
@@ -376,11 +346,6 @@ function App() {
               </button>
 
             </form>
-
-            <p className="chat-disclaimer">
-              AI-generated insights are based on retrieved tweets
-              and may not represent every customer's experience.
-            </p>
 
           </section>
         </main>

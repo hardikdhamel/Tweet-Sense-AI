@@ -513,219 +513,217 @@ body {
   padding: 15px 18px;
   font-size: 14px;
   line-height: 1.7;
-  white-space: pre-wrap;
+  white-space: normal;
   overflow-wrap: anywhere;
 }
 
 /* Markdown formatting for AI responses */
+/* =================================
+   POLISHED AI RESPONSE FORMATTING
+================================= */
 
-.message-text p {
-  margin-bottom: 14px;
+.message-row.assistant .message-text {
+  background: #f2f5fa;
+  color: #263247;
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-.message-text p:last-child {
+.message-row.assistant .message-text p {
+  margin: 0 0 9px;
+}
+
+.message-row.assistant .message-text p:last-child {
   margin-bottom: 0;
 }
 
-.message-text strong {
-  font-weight: 700;
+.message-row.assistant .message-text strong {
   color: #172033;
+  font-weight: 700;
 }
 
-.message-text ul,
-.message-text ol {
-  padding-left: 24px;
-  margin: 10px 0 16px;
-}
-
-.message-text li {
-  margin-bottom: 7px;
-  padding-left: 3px;
-}
-
-.message-text h1,
-.message-text h2,
-.message-text h3,
-.message-text h4 {
-  margin: 16px 0 10px;
+.message-row.assistant .message-text h1,
+.message-row.assistant .message-text h2,
+.message-row.assistant .message-text h3,
+.message-row.assistant .message-text h4 {
+  color: #172033;
   font-weight: 700;
   line-height: 1.4;
-  color: #172033;
+  margin: 14px 0 7px;
 }
 
-.message-text h1 {
-  font-size: 20px;
+.message-row.assistant .message-text h1 {
+  font-size: 21px;
 }
 
-.message-text h2 {
-  font-size: 18px;
+.message-row.assistant .message-text h2 {
+  font-size: 19px;
 }
 
-.message-text h3 {
+.message-row.assistant .message-text h3 {
   font-size: 16px;
 }
 
-.message-text blockquote {
-  border-left: 3px solid #376de0;
-  padding-left: 12px;
-  margin: 12px 0;
-  color: #64748b;
-}
-
-.message-text code {
-  background: #e5eaf2;
-  padding: 2px 5px;
-  border-radius: 4px;
-  font-size: 13px;
-}
-
-.sources-section {
-  margin-top: 20px;
-}
-
-.sources-section h3 {
+.message-row.assistant .message-text h4 {
   font-size: 15px;
-  margin-bottom: 12px;
 }
 
-.source-card {
-  background: #ffffff;
-  border: 1px solid #e3e9f2;
-  border-radius: 9px;
-  padding: 14px;
-  margin-bottom: 10px;
+.message-row.assistant .message-text ul,
+.message-row.assistant .message-text ol {
+  padding-left: 25px;
+  margin: 7px 0 10px;
 }
 
-.source-top {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 12px;
-  margin-bottom: 10px;
+.message-row.assistant .message-text li {
+  padding-left: 4px;
+  margin-bottom: 5px;
 }
 
-.source-top span {
+.message-row.assistant .message-text li::marker {
   color: #376de0;
 }
 
-.source-card p {
+.message-row.assistant .message-text blockquote {
+  border-left: 3px solid #376de0;
+  padding: 10px 14px;
+  margin: 14px 0;
+  background: #eaf1ff;
+  border-radius: 0 7px 7px 0;
   color: #46536a;
+}
+
+.message-row.assistant .message-text code {
+  background: #e5eaf2;
+  padding: 3px 6px;
+  border-radius: 5px;
   font-size: 13px;
-  line-height: 1.6;
-  margin-bottom: 10px;
 }
 
-.source-card small {
-  color: #788398;
-}
-
-.typing-indicator {
+.message-row.assistant .message-text pre {
+  background: #172033;
+  color: #f8fafc;
   padding: 14px;
-  background: #f2f5fa;
-  color: #64748b;
-  border-radius: 10px;
-  font-size: 13px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 14px 0;
 }
+
+.message-row.assistant .message-text pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.message-row.assistant .message-text hr {
+  border: 0;
+  border-top: 1px solid #dce3ee;
+  margin: 18px 0;
+}
+
+.message-row.assistant .message-text a {
+  color: #376de0;
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .message-row.assistant .message-text {
+    font-size: 13px;
+    line-height: 1.75;
+  }
+
+  .message-row.assistant .message-text h1 {
+    font-size: 19px;
+  }
+
+  .message-row.assistant .message-text h2 {
+    font-size: 17px;
+  }
+
+  .message-row.assistant .message-text h3 {
+    font-size: 15px;
+  }
+}
+
+
+/* =================================
+   CHAT INPUT AND SEND BUTTON
+================================= */
 
 .chat-input-area {
-  padding: 18px;
+  padding: 18px 20px;
   border-top: 1px solid #e8edf5;
   display: flex;
+  align-items: center;
   gap: 12px;
+  background: #ffffff;
 }
 
 .chat-input-area input {
   flex: 1;
+  width: 100%;
   min-width: 0;
+  height: 48px;
   border: 1px solid #dce2ec;
-  border-radius: 9px;
-  padding: 14px;
+  border-radius: 10px;
+  padding: 0 16px;
   outline: none;
+  background: #ffffff;
+  color: #172033;
   font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .chat-input-area input:focus {
   border-color: #376de0;
+  box-shadow: 0 0 0 3px #376de020;
+}
+
+.chat-input-area input::placeholder {
+  color: #94a0b3;
 }
 
 .chat-input-area button {
-  background: #376de0;
-  color: white;
+  flex-shrink: 0;
+  height: 48px;
+  min-width: 100px;
+  padding: 0 20px;
   border: none;
-  border-radius: 9px;
-  padding: 0 25px;
+  border-radius: 10px;
+  background: #376de0;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.chat-input-area button:hover:not(:disabled) {
+  background: #285ac4;
+  transform: translateY(-1px);
 }
 
 .chat-input-area button:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   cursor: not-allowed;
-}
-
-.chat-disclaimer {
-  text-align: center;
-  color: #94a0b3;
-  font-size: 11px;
-  padding: 0 15px 18px;
+  transform: none;
 }
 
 @media (max-width: 600px) {
-  .chat-navbar {
-    padding: 0 15px;
-  }
-
-  .chat-brand h2 {
-    font-size: 17px;
-  }
-
-  .navbar-user {
-    gap: 8px;
-    font-size: 11px;
-  }
-
-  .navbar-user button {
-    padding: 9px 12px;
-  }
-
-  .chat-heading h1 {
-    font-size: 25px;
-  }
-
-  .chat-messages {
-    padding: 15px;
-  }
-
-  .message-content {
-    max-width: 95%;
-  }
-
-  .suggestion-list {
-    flex-direction: column;
-  }
-
   .chat-input-area {
     padding: 12px;
+    gap: 8px;
+  }
+
+  .chat-input-area input,
+  .chat-input-area button {
+    height: 44px;
   }
 
   .chat-input-area button {
-    padding: 0 15px;
-  }
-
-  .message {
-    background: #fef2f2;
-    color: #dc2626;
-    border: 1px solid #fecaca;
-    padding: 12px 14px;
-    border-radius: 8px;
+    min-width: 75px;
+    padding: 0 12px;
     font-size: 13px;
-    margin: 15px 0;
-    line-height: 1.5;
   }
-
-  .message:empty {
-    display: none;
-  }
-
 }
-
-

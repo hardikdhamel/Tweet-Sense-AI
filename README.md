@@ -1,108 +1,148 @@
-# TweetSense AI – Tweet-Based Product Opinion Chatbot
+# TweetSense AI – AI-Powered Product Opinion Chatbot
 
-An AI-powered chatbot that analyzes product opinions from Twitter/X datasets and generates meaningful answers using semantic search and Large Language Models (LLMs).
+TweetSense AI is a web-based chatbot that helps users understand product opinions by asking questions in natural language. It retrieves relevant posts from a curated Twitter/X dataset using semantic search and generates concise, readable answers with Google Gemini.
 
-Users can ask product-related questions and receive AI-generated insights supported by relevant tweets.
+<p align="center">
+  <a href="https://tweetsense-ai.web.app">Live Demo</a> ·
+  <a href="https://tweet-sense-ai.onrender.com/docs">API Documentation</a>
+</p>
 
 ---
 
-## 🚀 Project Overview
+## Overview
 
-TweetSense AI helps users understand what people think about products by analyzing tweet-based opinions.
-
-Instead of manually searching through thousands of tweets, users can simply ask questions such as:
+Instead of manually searching through a large collection of product-related posts, users can ask questions such as:
 
 - Is Dell laptop good?
 - What are the advantages of HP laptops?
 - What do people think about ASUS laptops?
 
-The application retrieves relevant tweets using semantic similarity and uses an LLM to generate a concise, balanced response based on the retrieved information.
+TweetSense AI finds relevant content in its indexed dataset and uses that retrieved context to generate an answer. The current dataset is focused on laptop-related posts.
 
-## ✨ Key Features
+## Features
 
-- **User Registration & Login:** Create an account and securely store passwords using hashing.
-- **Tweet Dataset Integration:** Load and preprocess product-related tweets from Hugging Face.
-- **Semantic Search:** Retrieve relevant tweets using Sentence Transformers and FAISS.
-- **AI-Powered Responses:** Generate contextual answers using Llama 3.1 through Ollama.
-- **Supporting Tweets:** Display the tweets used to generate each response.
-- **REST API:** Backend services developed using FastAPI.
-- **Interactive Frontend:** Responsive user interface developed using React and Tailwind CSS.
+- **User registration and login** with password hashing.
+- **Natural-language product questions** through an interactive chat interface.
+- **Semantic retrieval** using Jina embeddings and FAISS vector search.
+- **Retrieval-augmented generation (RAG)** with Google Gemini.
+- **Concise, structured answers** with readable Markdown formatting.
+- **Responsive React interface** with a chat experience.
+- **FastAPI REST backend** with API documentation.
+- **Cloud deployment** with Firebase Hosting and Render.
+- **PostgreSQL in production** using Neon; SQLite is available as the local fallback configured by the backend.
 
-## 🏗️ System Architecture
+> The chat interface displays the generated answer rather than listing the retrieved posts. The retrieval results are used internally as context for answer generation.
+
+## Live Application
+
+| Component | URL |
+|---|---|
+| Frontend | https://tweetsense-ai.web.app |
+| Backend API | https://tweet-sense-ai.onrender.com |
+| API documentation | https://tweet-sense-ai.onrender.com/docs |
+| Health check | https://tweet-sense-ai.onrender.com/health |
+
+## System Architecture
 
 ```text
-              USER
-                |
-                v
-         React Frontend
-                |
-                v
-          FastAPI Backend
-                |
-        +-------+-------+
-        |               |
-        v               v
-   Authentication   Chatbot API
-        |               |
-        v               v
-   SQLite Database  FAISS Search
-                        |
-                        v
-                 Relevant Tweets
-                        |
-                        v
-                  Context Builder
-                        |
-                        v
-                 Ollama API
-                        |
-                        v
-                 Llama 3.1 LLM
-                        |
-                        v
-                Generated Answer
-                        |
-                        v
-              Supporting Tweets
-                        |
-                        v
-                 React Frontend
+                         USER
+                           |
+                           v
+                  React + Vite Frontend
+                    (Firebase Hosting)
+                           |
+                           v
+                    FastAPI Backend
+                       (Render)
+                           |
+              +------------+-------------+
+              |                          |
+              v                          v
+       Authentication                Chatbot API
+              |                          |
+              v                          v
+       Neon PostgreSQL             Jina Embeddings API
+       (SQLite locally)                   |
+                                          v
+                                  Query Embedding
+                                          |
+                                          v
+                                    FAISS Index
+                                          |
+                                          v
+                                Top 5 Relevant Posts
+                                          |
+                                          v
+                                  Context Builder
+                                          |
+                                          v
+                                    Gemini API
+                                          |
+                                          v
+                                  Final Answer
+                                          |
+                                          v
+                                  React Chat UI
 ```
 
-**LLM Hosting:** Ollama runs in Google Colab, with its API exposed through an ngrok tunnel. The backend connects using the configurable Ollama API URL.
+## How It Works
 
-## 🛠️ Technology Stack
+1. A user registers or logs in.
+2. The user submits a product-related question in the chat interface.
+3. The React frontend sends the question to the FastAPI `/chat` endpoint.
+4. The backend sends the question to Jina to generate a query embedding.
+5. FAISS searches the pre-built vector index and retrieves the five most relevant posts.
+6. The backend builds a context from the retrieved results.
+7. Google Gemini generates an answer using the question and retrieved context.
+8. The frontend renders the answer with Markdown formatting.
+
+## Technology Stack
 
 ### Frontend
-- React.js
+- React 19
 - JavaScript
-- Tailwind CSS
 - Vite
+- Tailwind CSS
+- `react-markdown`
 
 ### Backend
 - Python
 - FastAPI
-- SQLAlchemy
-- SQLite
+- Uvicorn
 - Pydantic
+- SQLAlchemy
+- SQLite (local fallback)
+- PostgreSQL / Neon (production)
+- `psycopg`
 
-### AI / Machine Learning
+### AI / Search
 - Hugging Face Datasets
-- Sentence Transformers
-- `sentence-transformers/all-MiniLM-L6-v2`
-- FAISS
-- Ollama
-- Llama 3.1
+- Jina Embeddings API – `jina-embeddings-v5-text-small`
+- 1024-dimensional embeddings
+- FAISS (`IndexFlatIP`) for vector similarity search
+- Google Gemini API – configured through `GEMINI_MODEL`
+- Retrieval-Augmented Generation (RAG)
 
-### Tools & Platforms
-- Google Colab
-- NVIDIA T4 GPU (when available)
-- ngrok
-- Git & GitHub
+### Deployment and Tools
+- Firebase Hosting – frontend
+- Render – backend
+- Neon – hosted PostgreSQL
+- Hugging Face – source dataset
+- Git and GitHub
 - VS Code
-- Postman / Swagger UI
+- Swagger UI / Postman
 
-## 📂 Project Structure
+## Dataset
+
+**Source:** [Twitter Laptop Dataset – Hugging Face](https://huggingface.co/datasets/MrbBakh/Twitter_Laptop)
+
+The current application uses a prepared collection of approximately 3,000 laptop-related posts. The data preparation workflow includes text preprocessing, filtering, duplicate removal, and metadata preparation.
+
+The processed data is embedded with Jina and stored in a FAISS index for semantic retrieval. The current release is built around this laptop dataset; support for dynamically selecting or switching Hugging Face datasets is not part of the current implementation.
+
+## Project Structure
+
+The main project structure is:
 
 ```text
 Tweet-Sense-AI/
@@ -111,16 +151,20 @@ Tweet-Sense-AI/
 │   ├── data/
 │   │   ├── tweets.json
 │   │   ├── tweets.index
-│   │   └── tweets_metadata.json
+│   │   ├── tweets_metadata.json
+│   │   ├── tweets_jina.index
+│   │   └── tweets_jina_metadata.json
 │   │
 │   ├── main.py
 │   ├── auth.py
 │   ├── chatbot.py
-│   ├── database.py
-│   ├── models.py
 │   ├── dataset.py
 │   ├── embeddings.py
+│   ├── embeddings_jina.py
 │   ├── search.py
+│   ├── compare_embeddings.py
+│   ├── database.py
+│   ├── models.py
 │   ├── requirements.txt
 │   └── .env.example
 │
@@ -132,198 +176,221 @@ Tweet-Sense-AI/
 │   │   ├── App.css
 │   │   ├── index.css
 │   │   └── main.jsx
-│   │
 │   ├── package.json
 │   ├── package-lock.json
-│   └── vite.config.js
+│   ├── vite.config.js
+│   └── firebase.json
 │
 ├── .gitignore
 └── README.md
 ```
 
-## ⚙️ Installation & Setup
+The exact files may vary as the project evolves. Generated vector indexes and metadata files must be present in `backend/data/` for the current search implementation.
 
-### 1. Clone the Repository
+## Run Locally
 
-```bash
-git clone https://github.com/YOUR_USERNAME/TweetSense-AI.git
+### Prerequisites
 
-cd TweetSense-AI
-```
+- Python 3.10 or later
+- Node.js and npm
+- API keys for Jina and Google Gemini
+- A PostgreSQL connection string if you want to use PostgreSQL locally; otherwise, use the configured SQLite fallback
 
-### 2. Backend Setup
-
-Navigate to the backend directory:
-
-```bash
-cd backend
-```
-
-Create a virtual environment:
+### 1. Clone the repository
 
 ```bash
-python -m venv venv
+git clone https://github.com/hardikdhamel/Tweet-Sense-AI.git
+cd Tweet-Sense-AI
 ```
 
-Activate it on Windows:
+### 2. Configure the backend
+
+Open a terminal in the project root:
 
 ```powershell
-.\venv\Scripts\Activate.ps1
-```
-
-Install dependencies:
-
-```bash
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-### 3. Configure Environment Variables
-
-Create a `.env` file inside the backend directory.
+Create a `.env` file inside `backend/`:
 
 ```env
-HF_TOKEN=your_huggingface_token
+# Required AI service credentials
+JINA_API_KEY=your_jina_api_key
+GEMINI_API_KEY=your_gemini_api_key
 
-OLLAMA_BASE_URL=https://your-ngrok-url.ngrok-free.app
+# Model configuration
+JINA_EMBEDDING_MODEL=jina-embeddings-v5-text-small
+GEMINI_MODEL=gemini-3.5-flash-lite
 
-OLLAMA_MODEL=llama3.1:latest
+# Database
+# Set this to your PostgreSQL connection string when using PostgreSQL.
+# If omitted, the backend uses its configured SQLite fallback.
+DATABASE_URL=
+
+# Frontend origin allowed by the backend CORS configuration
+FRONTEND_URL=http://localhost:5173
 ```
 
-Keep your API tokens and private configuration out of GitHub.
+Do not commit `.env` or publish API keys, database credentials, or other secrets.
 
-### 4. Prepare the Dataset and FAISS Index
+### 3. Ensure the search data is available
 
-If the prepared dataset and index files are not included in the repository, run:
+The current search implementation expects the Jina FAISS index and its metadata in:
 
-```bash
+```text
+backend/data/tweets_jina.index
+backend/data/tweets_jina_metadata.json
+```
+
+If you need to recreate the prepared data, run the project's data preparation and Jina indexing scripts from the `backend/` directory:
+
+```powershell
 python dataset.py
-python embeddings.py
+python embeddings_jina.py
 ```
 
-This downloads and preprocesses the dataset, generates embeddings, and creates the FAISS search index.
+This step requires the dataset source and a valid Jina API key. If the prepared index files are already present, you do not need to rebuild them.
 
-### 5. Start the Backend
+### 4. Start the backend
 
-```bash
+From the `backend/` directory:
+
+```powershell
 uvicorn main:app --reload
 ```
 
-Backend URL:
+Backend:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-Swagger documentation:
+Interactive API documentation:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-### 6. Frontend Setup
+Health check:
 
-Open another terminal and navigate to the frontend directory:
-
-```bash
-cd frontend
+```text
+http://127.0.0.1:8000/health
 ```
 
-Install dependencies:
+### 5. Configure and start the frontend
 
-```bash
+Open a second terminal:
+
+```powershell
+cd frontend
 npm install
 ```
 
-Start the development server:
+Create `frontend/.env` for local development:
 
-```bash
+```env
+VITE_API_URL=http://127.0.0.1:8000
+```
+
+Start Vite:
+
+```powershell
 npm run dev
 ```
 
-Frontend URL:
+Frontend:
 
 ```text
 http://localhost:5173
 ```
 
-## 🔄 How It Works
+## API Endpoints
 
-1. The user registers or logs in to TweetSense AI.
-2. The user asks a product-related question.
-3. FastAPI receives the question through the chatbot endpoint.
-4. Sentence Transformers converts the question into an embedding.
-5. FAISS searches for the most relevant tweet embeddings.
-6. The retrieved tweets are added to the LLM prompt.
-7. Ollama sends the prompt to Llama 3.1.
-8. The LLM generates an answer based on the retrieved tweet context.
-9. The frontend displays the AI response and supporting tweets.
-
-## 🔌 API Endpoints
-
-| Method | Endpoint | Description |
+| Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/` | Welcome endpoint |
-| GET | `/health` | Backend health check |
-| POST | `/auth/register` | Register a new user |
-| POST | `/auth/login` | Authenticate user |
-| POST | `/chat` | Generate an AI-powered product opinion response |
+| `GET` | `/` | API welcome response |
+| `GET` | `/health` | Backend health check |
+| `POST` | `/auth/register` | Register a user |
+| `POST` | `/auth/login` | Log in a user |
+| `POST` | `/chat` | Retrieve relevant posts and generate an answer |
 
-## 📊 Dataset Information
+See `/docs` for the request and response schemas exposed by the running API.
 
-**Dataset:** [Twitter Laptop Dataset – Hugging Face](https://huggingface.co/datasets/MrbBakh/Twitter_Laptop)
+## Deployment
 
-The dataset contains laptop-related tweets.
+### Frontend – Firebase Hosting
 
-Preprocessing includes:
-- Text cleaning
-- English-language filtering
-- Duplicate removal
-- Tweet selection
-- Metadata extraction
+The React/Vite frontend is deployed to Firebase Hosting:
 
-The processed tweets are stored as JSON and indexed using FAISS.
+```text
+https://tweetsense-ai.web.app
+```
 
-**Note:** The current dataset focuses on laptops, not all product categories. Retrieved tweets can include advertisements and limited opinions, so AI-generated conclusions should be interpreted accordingly.
+For a production build, configure the frontend API URL before building:
 
-## 🔐 Security Notes
+```env
+VITE_API_URL=https://tweet-sense-ai.onrender.com
+```
+
+Then build and deploy from the `frontend/` directory:
+
+```bash
+npm run build
+firebase deploy --only hosting
+```
+
+Vite environment variables are included at build time. Rebuild and redeploy the frontend after changing `VITE_API_URL`.
+
+### Backend – Render
+
+The FastAPI backend is deployed on Render:
+
+```text
+https://tweet-sense-ai.onrender.com
+```
+
+The Render service needs the backend environment variables configured in its dashboard, including the Jina and Gemini API keys, model names, database URL, and allowed frontend URL.
+
+Set:
+
+```env
+FRONTEND_URL=https://tweetsense-ai.web.app
+```
+
+Do not place secret values in this README or in source control.
+
+### Database – Neon
+
+The deployed backend uses a Neon PostgreSQL database through `DATABASE_URL`. Keep the connection string private and configure it as an environment variable in Render.
+
+## Security
 
 - Passwords are stored using password hashing.
-- Environment variables are excluded from version control.
-- Hugging Face and ngrok credentials should remain private.
+- API keys and database connection strings are loaded from environment variables.
+- `.env` files and local secrets should be excluded from Git.
+- Use HTTPS for deployed frontend and backend communication.
+- Never commit real API keys, database passwords, or user credentials.
 
-The current authentication implementation provides basic registration and login; persistent JWT/session authentication is not yet implemented.
+## Current Scope and Future Improvements
 
-## 🚧 Development Progress
+The current release focuses on answering questions from the prepared laptop-related dataset. Potential future improvements include:
 
-- [x] Project setup and environment configuration
-- [x] FastAPI backend setup
-- [x] User registration and login
-- [x] Hugging Face dataset integration
-- [x] Tweet preprocessing
-- [x] Embedding generation
-- [x] FAISS semantic search
-- [x] Ollama LLM integration code
-- [x] React frontend setup
-- [x] Login and registration interface
-- [x] Chatbot interface
-- [ ] End-to-end remote LLM integration testing
-- [ ] Final frontend and backend integration testing
+- Support for additional product categories and configurable datasets.
+- Better filtering and ranking of retrieved content.
+- More robust evaluation of retrieval relevance and answer quality.
+- Conversation history.
+- Further authentication and account-management improvements.
 
-## 🔮 Future Enhancements
+These are future enhancements and should not be considered implemented features.
 
-- Support additional product categories.
-- Improve sentiment analysis.
-- Add conversation history.
-- Improve tweet filtering and relevance.
-- Add persistent authentication.
-- Deploy the application online.
+## Author
 
-## 👨‍💻 Author
-
-**Hardik Dhamel**
-
+**Hardik Dhamel**  
 Computer Engineering | Python | AI/ML | Generative AI
 
 ---
 
-*TweetSense AI – Turning social media conversations into meaningful product insights.*
+*TweetSense AI – Turning product conversations into useful insights.*
