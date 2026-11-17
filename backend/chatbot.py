@@ -1,162 +1,120 @@
 
 import os
-import requests
 from dotenv import load_dotenv
+from google import genai
+
 from search import search_tweets
 
-# Load environment variables
 load_dotenv()
 
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:latest")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
-if not OLLAMA_BASE_URL:
-    raise ValueError("OLLAMA_BASE_URL is missing from .env")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY is missing from .env")
 
-OLLAMA_URL = f"{OLLAMA_BASE_URL.rstrip('/')}/api/chat"
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 
-def generate_answer(question):
+def generate_answer(question: str):
+    """
+    Retrieve relevant tweets using FAISS and generate
+    a grounded answer using the Gemini API.
+    """
 
-    print("\nSearching relevant tweets...")
-
-    # Retrieve relevant tweets using FAISS
+    # Step 1: Retrieve relevant tweets
     results = search_tweets(question, top_k=5)
 
     if not results:
         return {
-            "answer": "I couldn't find relevant tweets for your question.",
+            "answer": "I couldn't find relevant tweets for your question. Please try asking about another product.",
             "sources": []
         }
 
-    # Prepare tweet context
-    context = ""
+    # Step 2: Prepare tweet context
+    tweet_context = "\n\n".join(
+        [
+            f"Tweet {i + 1}:\n"
+            f"Brand: {tweet.get('brand', 'Unknown')}\n"
+            f"Text: {tweet.get('text', '')}\n"
+            f"Similarity: {tweet.get('similarity', 0):.3f}"
+            for i, tweet in enumerate(results)
+        ]
+    )
 
-    for i, tweet in enumerate(results, start=1):
-        context += f"""
-Tweet {i}:
-Brand: {tweet['brand']}
-Content: {tweet['text']}
-Similarity: {tweet['similarity']:.3f}
-"""
+    # Step 3: System instructions
+    system_instruction = """
+    You are TweetSense AI, an intelligent product review
+    and opinion analysis assistant.
 
-    # System prompt
-    system_prompt = """
-You are TweetSense AI, a product opinion analysis assistant.
+    Your job is to answer user questions using the provided tweets.
 
-Your task is to answer user questions based on retrieved tweets.
+    Rules:
+    1. Base your answer primarily on the provided tweets.
+    2. Do not invent customer opinions, reviews, or statistics.
+    3. If the tweets do not contain enough information,
+       clearly mention that.
+    4. Identify positive and negative opinions when relevant.
+    5. Give clear, simple, and useful answers.
+    6. Do not claim that the tweets represent all customers.
+    7. If the question is unrelated to product opinions,
+       politely explain what you can help with.
+    """
 
-Instructions:
-1. Use only the supplied tweet evidence.
-2. Analyze positive and negative opinions.
-3. Give balanced and understandable answers.
-4. Never invent product specifications or opinions.
-5. Clearly mention when evidence is insufficient.
-6. Do not treat advertisements as verified customer experiences.
-7. Mention advantages and disadvantages when available.
-8. Give a short conclusion.
-9. Refer to supporting tweets using their tweet numbers.
+    # Step 4: Prepare user prompt
+    prompt = f"""
+    User Question:
+    {question}
 
-Keep your answer concise and conversational.
-"""
+    Retrieved Tweets:
+    {tweet_context}
 
-    user_prompt = f"""
-User Question:
-{question}
+    Based on these tweets, answer the user's question.
+    """
 
-Retrieved Tweet Context:
-{context}
-
-Analyze the tweets and answer the user's question.
-"""
-
-    print("Generating AI response using Ollama...")
-
+    # Step 5: Generate response using Gemini
     try:
-
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": OLLAMA_MODEL,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": system_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": user_prompt
-                    }
-                ],
-                "stream": False,
-                "options": {
-                    "temperature": 0.3
-                }
-            },
-            timeout=180
+        interaction = client.interactions.create(
+            model=GEMINI_MODEL,
+            system_instruction=system_instruction,
+            input=prompt,
+            generation_config={
+                "temperature": 0.3,
+                "max_output_tokens": 512
+            }
         )
 
-        response.raise_for_status()
+        answer = interaction.output_text
 
-        answer = response.json()["message"]["content"]
+        if not answer:
+            raise ValueError("Gemini returned an empty response.")
 
         return {
             "answer": answer,
             "sources": results
         }
 
-    except requests.exceptions.Timeout:
-
-        return {
-            "answer": "The AI model took too long to respond. Please try again.",
-            "sources": results
-        }
-
-    except requests.exceptions.ConnectionError:
-
-        return {
-            "answer": "Unable to connect to the AI model. Please check the Ollama URL.",
-            "sources": results
-        }
-
-    except requests.exceptions.HTTPError as e:
-
-        print("Ollama HTTP Error:", str(e))
-
-        return {
-            "answer": "The AI service returned an error. Please check the model and API configuration.",
-            "sources": results,
-            "error": str(e)
-        }
-
-    except Exception as e:
-
-        print("Ollama Error:", str(e))
-
-        return {
-            "answer": "Unable to generate an AI response.",
-            "sources": results,
-            "error": str(e)
-        }
+    except Exception as error:
+        print("Gemini API Error:", str(error))
+        raise RuntimeError(
+            "Unable to generate an answer right now. Please try again later."
+        ) from error
 
 
-# Run chatbot independently
+# Local testing
 if __name__ == "__main__":
 
-    print("\n========== TWEETSENSE AI CHATBOT ==========")
+    test_question = "What do customers think about Dell laptops?"
 
-    question = input("\nAsk your question: ")
+    response = generate_answer(test_question)
 
-    result = generate_answer(question)
+    print("\n========== TWEETSENSE AI ==========")
+    print("\nQuestion:", test_question)
+    print("\nAI Answer:", response["answer"])
 
-    print("\n========== AI RESPONSE ==========")
-    print(result["answer"])
+    print("\n========== SOURCES ==========")
 
-    print("\n========== SUPPORTING TWEETS ==========")
-
-    for i, tweet in enumerate(result["sources"], start=1):
-
-        print(f"\nTweet {i}")
-        print("Brand:", tweet["brand"])
-        print("Similarity:", round(tweet["similarity"], 3))
-        print("Content:", tweet["text"])
+    for source in response["sources"]:
+        print("\nBrand:", source.get("brand"))
+        print("Similarity:", source.get("similarity"))
+        print("Tweet:", source.get("text"))

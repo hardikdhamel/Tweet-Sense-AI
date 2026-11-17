@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import "./App.css";
+import ReactMarkdown from "react-markdown";
 
 // Local development uses localhost.
 // Vercel deployment uses VITE_API_URL.
@@ -293,7 +294,13 @@ function App() {
                     </div>
 
                     <div className="message-text">
-                      {chat.content}
+                      {chat.role === "assistant" ? (
+                        <ReactMarkdown>
+                          {chat.content}
+                        </ReactMarkdown>
+                      ) : (
+                        chat.content
+                      )}
                     </div>
 
                     {chat.sources?.length > 0 && (

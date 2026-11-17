@@ -2,12 +2,12 @@
 import json
 import os
 import threading
-
 from pathlib import Path
 
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
+import requests
+from dotenv import load_dotenv
 
 
 # ==========================================
@@ -16,24 +16,27 @@ from sentence_transformers import SentenceTransformer
 
 BASE_DIR = Path(__file__).resolve().parent
 
-INDEX_FILE = BASE_DIR / "data" / "tweets.index"
-METADATA_FILE = BASE_DIR / "data" / "tweets_metadata.json"
+INDEX_FILE = BASE_DIR / "data" / "tweets_jina.index"
+METADATA_FILE = BASE_DIR / "data" / "tweets_jina_metadata.json"
 
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+JINA_API_URL = "https://api.jina.ai/v1/embeddings"
+JINA_EMBEDDING_MODEL = os.getenv(
+    "JINA_EMBEDDING_MODEL",
+    "jina-embeddings-v5-text-small"
+)
 
-# Use temporary storage for downloaded model files in serverless hosting.
-MODEL_CACHE = os.getenv("HF_HOME", "/tmp/huggingface")
+load_dotenv(BASE_DIR / ".env")
+
+JINA_API_KEY = os.getenv("JINA_API_KEY")
 
 
 # ==========================================
 # GLOBAL RESOURCES
 # ==========================================
 
-model = None
 index = None
 tweets = None
 
-# Prevent multiple simultaneous initializations.
 load_lock = threading.Lock()
 
 
@@ -43,57 +46,44 @@ load_lock = threading.Lock()
 
 def load_resources():
     """
-    Load the embedding model, FAISS index and tweet metadata
+    Load the Jina FAISS index and tweet metadata
     only when the first search request is received.
-
-    Resources remain cached in memory for subsequent requests
-    handled by the same application instance.
     """
 
-    global model, index, tweets
+    global index, tweets
 
-    if model is not None and index is not None and tweets is not None:
+    if index is not None and tweets is not None:
         return
 
     with load_lock:
 
-        # Check again after acquiring the lock.
-        if model is not None and index is not None and tweets is not None:
+        if index is not None and tweets is not None:
             return
 
         print("\n========== LOADING TWEETSENSE RESOURCES ==========")
 
-        # Check required files.
+        if not JINA_API_KEY:
+            raise ValueError(
+                "JINA_API_KEY is missing. Please configure it in your .env file."
+            )
+
         if not INDEX_FILE.exists():
             raise FileNotFoundError(
-                f"FAISS index not found: {INDEX_FILE}"
+                f"Jina FAISS index not found: {INDEX_FILE}"
             )
 
         if not METADATA_FILE.exists():
             raise FileNotFoundError(
-                f"Tweet metadata not found: {METADATA_FILE}"
+                f"Jina tweet metadata not found: {METADATA_FILE}"
             )
 
-        # Load embedding model on CPU.
-        print("Loading embedding model...")
-
-        loaded_model = SentenceTransformer(
-            EMBEDDING_MODEL,
-            cache_folder=MODEL_CACHE,
-            device="cpu"
-        )
-
-        print("Embedding model loaded!")
-
-        # Load FAISS index.
-        print("Loading FAISS index...")
+        print("Loading Jina FAISS index...")
 
         loaded_index = faiss.read_index(str(INDEX_FILE))
 
         print("FAISS index loaded!")
         print("Total indexed vectors:", loaded_index.ntotal)
 
-        # Load tweet metadata.
         print("Loading tweet metadata...")
 
         with open(METADATA_FILE, "r", encoding="utf-8") as file:
@@ -104,25 +94,90 @@ def load_resources():
                 "FAISS index and tweet metadata counts do not match."
             )
 
-        # Verify embedding dimensions.
-        embedding_dimension = (
-            loaded_model.get_sentence_embedding_dimension()
-        )
+        if loaded_index.ntotal == 0:
+            raise ValueError("The Jina FAISS index is empty.")
 
-        if loaded_index.d != embedding_dimension:
+        if loaded_index.d != 1024:
             raise ValueError(
-                "Embedding model dimension does not match FAISS index."
+                f"Expected 1024 dimensions, but index has {loaded_index.d}."
             )
 
-        # Assign resources only after successful initialization.
-        model = loaded_model
         index = loaded_index
         tweets = loaded_tweets
 
         print("Tweet metadata loaded!")
         print("Total tweets:", len(tweets))
-        print("Embedding dimensions:", embedding_dimension)
+        print("Embedding dimensions:", index.d)
+
         print("========== RESOURCES READY ==========\n")
+
+
+# ==========================================
+# JINA QUERY EMBEDDING
+# ==========================================
+
+def generate_query_embedding(query):
+    """
+    Generate a normalized query embedding using
+    the Jina Embedding API.
+    """
+
+    if not JINA_API_KEY:
+        raise ValueError("JINA_API_KEY is missing.")
+
+    headers = {
+        "Authorization": f"Bearer {JINA_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": JINA_EMBEDDING_MODEL,
+        "task": "retrieval.query",
+        "dimensions": 1024,
+        "normalized": True,
+        "input": [f"Query: {query.strip()}"]
+    }
+
+    try:
+        response = requests.post(
+            JINA_API_URL,
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+
+        response.raise_for_status()
+
+        response_data = response.json()
+
+        embedding = response_data["data"][0]["embedding"]
+
+        query_embedding = np.asarray(
+            embedding,
+            dtype=np.float32
+        ).reshape(1, -1)
+
+        if query_embedding.shape[1] != 1024:
+            raise ValueError(
+                f"Expected 1024 embedding dimensions, "
+                f"received {query_embedding.shape[1]}."
+            )
+
+        if not np.all(np.isfinite(query_embedding)):
+            raise ValueError("Jina returned invalid embedding values.")
+
+        return query_embedding
+
+    except requests.exceptions.RequestException as error:
+        print("Jina API request failed:", str(error))
+        raise RuntimeError(
+            "Unable to generate query embedding using Jina API."
+        ) from error
+
+    except (KeyError, IndexError, TypeError) as error:
+        raise RuntimeError(
+            "Unexpected response received from Jina API."
+        ) from error
 
 
 # ==========================================
@@ -134,25 +189,16 @@ def search_tweets(query, top_k=5):
     if not isinstance(query, str) or not query.strip():
         raise ValueError("Search query cannot be empty.")
 
-    if top_k < 1:
-        raise ValueError("top_k must be greater than zero.")
+    if not isinstance(top_k, int) or top_k < 1:
+        raise ValueError("top_k must be a positive integer.")
 
     # Load resources only when needed.
     load_resources()
 
-    print("\nSearching relevant tweets...")
+    print("\nSearching relevant tweets using Jina...")
 
-    # Generate query embedding.
-    query_embedding = model.encode(
-        [query.strip()],
-        normalize_embeddings=True,
-        convert_to_numpy=True
-    )
-
-    query_embedding = np.asarray(
-        query_embedding,
-        dtype=np.float32
-    )
+    # Generate query embedding through Jina API.
+    query_embedding = generate_query_embedding(query)
 
     # Search only as many results as the index contains.
     result_count = min(top_k, index.ntotal)
