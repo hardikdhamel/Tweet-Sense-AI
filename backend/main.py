@@ -24,7 +24,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "").rstrip("/")
 # DATABASE INITIALIZATION
 # ==========================================
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 
 # ==========================================
